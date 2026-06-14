@@ -1,0 +1,32 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "multilayer-tmm"
+version = "0.1.0"
+description = "JAX transfer-matrix simulation for coherent multilayer thin films"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "TransferMatrix contributors" }]
+dependencies = [
+    "jax>=0.4",
+    "matplotlib>=3.8",
+    "numpy>=1.26",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+]
+opt = [
+    "optax>=0.2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["multilayer_tmm"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
