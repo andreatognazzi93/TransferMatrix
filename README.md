@@ -21,6 +21,51 @@ pip install -e ".[dev,opt]"
 
 `optax` is optional. Without it, optimization falls back to basic gradient descent.
 
+## Graphical Interface (GUI)
+
+The project ships with an interactive [Dash](https://dash.plotly.com/) app for building stacks, running simulations, and tuning resonances in the browser — no Python scripting required.
+
+### 1. Get the project
+
+```bash
+git clone https://github.com/andreatognazzi93/TransferMatrix.git
+cd TransferMatrix
+```
+
+### 2. Create a virtual environment (recommended)
+
+```bash
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+```
+
+### 3. Install with the GUI extras
+
+```bash
+pip install -e ".[gui]"
+```
+
+This installs the library plus the GUI dependencies (`dash`, `plotly`, `diskcache`, `pandas`, `multiprocess`). Add `opt` if you also want Optax-backed optimization: `pip install -e ".[gui,opt]"`.
+
+### 4. Launch the app
+
+```bash
+python -m app
+```
+
+Then open the URL printed in the terminal — by default <http://127.0.0.1:8050>. The server runs locally on your own machine; nothing is uploaded anywhere.
+
+To stop it, press `Ctrl+C` in the terminal.
+
+### Using the GUI
+
+- **Build a stack** — set the incident medium and substrate, then add finite layers (material + thickness in nm). Materials can be constant `n + i k`, or uploaded as a CSV (`wavelength_nm,n,k`).
+- **Simulate** — choose the wavelength range, angle, and polarization, then run to see interactive `R`, `T`, and `A` spectra.
+- **Optimize** — on the optimization tab, target a resonance wavelength and Q and let the app tune selected layer thicknesses. Long optimization runs use a background worker, so the UI stays responsive.
+- Plots are interactive (zoom, pan, hover); results can be exported from the app.
+
+> **Production deployment:** `python -m app` starts Dash's development server, which is fine for local single-user use. To serve it to others, run it behind a WSGI server, e.g. `gunicorn app.main:server` inside a container (Render, Railway, Fly.io, or Hugging Face Spaces are good fits).
+
 ## Basic Usage
 
 ```python
