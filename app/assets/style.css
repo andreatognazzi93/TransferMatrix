@@ -1,0 +1,274 @@
+/*
+ * app/assets/style.css — Dash auto-serves this file (ARCHITECTURE §12.7).
+ *
+ * Covers:
+ *   (a) Light theme: explicit white background + dark (black) label/legend/
+ *       heading text. The app renders on a white surface (white inputs,
+ *       plotly_white figures); making the background explicit removes the
+ *       ambiguity that previously left labels light-on-white and unreadable.
+ *   (b) CSS-only help tooltip for optimize-control "?" badges — positioned to
+ *       the RIGHT of the badge so it never clips the left/top page edge.
+ *   (c) Larger run buttons (Simulate / Optimize) via the shared .run-button.
+ *   (d) Compact field layout: reduced input widths laid out ~3 per row for the
+ *       incident/substrate/cavity material editors and the grid/angle/pol rows.
+ *
+ * The dark-theme selectors are scoped to `.app-root` (build_layout's root
+ * html.Div carries className="app-root").
+ *
+ * Do NOT override DataTable cell colours or dropdown menu colours — those
+ * render on their own light surfaces (dark-on-light by design).
+ */
+
+/* ==========================================================================
+   (a) Light theme — explicit white background + readable (black) labels
+   ========================================================================== */
+
+html,
+body {
+    background-color: #ffffff;
+    color: #111111;
+}
+
+.app-root {
+    background-color: #ffffff;
+    min-height: 100vh;
+}
+
+.app-root label,
+.app-root legend,
+.app-root h1,
+.app-root h2,
+.app-root h3,
+.app-root h4,
+.app-root h5 {
+    color: #111111;
+}
+
+.app-root legend {
+    font-weight: 600;
+}
+
+.app-root .status-text,
+.app-root .thickness-readout {
+    color: #111111;
+}
+
+/* Language selector widget (header area). */
+.language-selector {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5em;
+    font-size: 0.9rem;
+}
+
+.language-selector-label {
+    color: #111111;
+    font-weight: 500;
+}
+
+.language-radio label {
+    color: #111111;
+    margin-left: 0.25em;
+}
+
+/* ==========================================================================
+   (b) Help-tooltip system — CSS-only, no JS (§12.7a)
+   ========================================================================== */
+
+/*
+ * The "?" badge: a small circle inline after the label text, keyboard
+ * focusable (tabIndex=0 set in the Python markup).
+ */
+.help {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.05em;
+    height: 1.05em;
+    margin-left: 0.4em;
+    border-radius: 50%;
+    border: 1px solid currentColor;
+    font-size: 0.75em;
+    font-weight: 600;
+    cursor: help;
+    position: relative;
+    vertical-align: middle;
+    outline-offset: 2px;
+    color: #111111;
+}
+
+.help:focus {
+    outline: 2px solid #5b9bd5;
+}
+
+/*
+ * The tooltip bubble — hidden by default. Anchored to the RIGHT of the badge
+ * and vertically centred on it, so it grows into the page (the controls sit in
+ * a narrow left column) and never gets clipped against the left or top edge.
+ */
+.help-text {
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    z-index: 1000;
+    left: 150%;
+    top: 50%;
+    transform: translateY(-50%);
+    width: max-content;
+    min-width: 180px;
+    max-width: 280px;
+    padding: 0.5em 0.6em;
+    background: #1f2733;
+    color: #f3f5f7;
+    border: 1px solid #3a4658;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    font-weight: 400;
+    line-height: 1.35;
+    white-space: normal;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+    transition: opacity 0.12s ease;
+    pointer-events: none;
+}
+
+/* Show on mouse hover, keyboard focus, or focus-within (touch). */
+.help:hover .help-text,
+.help:focus .help-text,
+.help:focus-within .help-text {
+    visibility: visible;
+    opacity: 1;
+}
+
+/*
+ * opt-label wrapper span — keeps the label text and the badge on the same
+ * baseline so the flex layout in .optimize-row works correctly.
+ */
+.opt-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+}
+
+/* ==========================================================================
+   (c) Larger run buttons (Simulate / Optimize share .run-button)
+   ========================================================================== */
+
+.run-button {
+    padding: 12px 28px;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+/* ==========================================================================
+   (d) Compact field layout — reduced inputs, ~3 per row
+   ==========================================================================
+ *
+ * Applies to the material editors (incident / substrate / cavity) and the
+ * grid / angle / polarization rows. The container width is capped so the
+ * fixed-width cells wrap to roughly three per row; the finite-layer DataTable
+ * is unaffected (it lives in .layers-section / .opt-group-section).
+ */
+
+.material-input,
+.grid-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: flex-end;
+}
+
+/* Cap width so 3 cells (160px) + gaps wrap to one row of three. */
+.material-input,
+.grid-controls {
+    max-width: 540px;
+}
+
+/* The <legend> of a material editor / grid fieldset spans the full row. */
+.material-input > legend,
+.grid-controls > legend {
+    flex: 0 0 100%;
+    width: 100%;
+}
+
+/* Let the constant (n, k) sub-wrapper's rows join the parent flex flow. */
+.material-constant-fields {
+    display: contents;
+}
+
+/* A single field: label stacked above its input, fixed compact width. */
+.material-input-row,
+.field-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 160px;
+    margin: 0;
+}
+
+/* CSV upload row spans the full width, below the constant fields. */
+.material-csv-fields {
+    flex: 0 0 100%;
+    width: 100%;
+    margin-top: 4px;
+}
+
+/* Make the inputs / dropdowns fill their compact cell. */
+.material-input-row input,
+.field-cell input {
+    width: 160px;
+    box-sizing: border-box;
+}
+
+.material-input-row .dash-dropdown,
+.field-cell .dash-dropdown,
+.material-kind-dropdown,
+.polarization-dropdown {
+    width: 160px;
+}
+
+/* ==========================================================================
+   (e) Optimize controls — un-stacked into a compact multi-column grid
+   ==========================================================================
+ *
+ * Previously every control sat in its own full-width row (stacked vertically).
+ * Lay them out ~3 per row on a CSS grid; the mode radio, the Optimize button,
+ * the status line and the progress placeholder span the full width.
+ */
+
+.optimize-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 180px));
+    gap: 8px 16px;
+    align-items: end;
+    max-width: 600px;
+}
+
+.optimize-controls .optimize-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    min-width: 0;
+}
+
+.optimize-controls .optimize-row .opt-label {
+    /* keep label + "?" badge aligned on the same baseline */
+    align-items: center;
+}
+
+.optimize-controls .optimize-row input,
+.optimize-controls .optimize-row .dash-input-container,
+.optimize-controls .optimize-row .dash-dropdown {
+    /* dcc.Input wraps its <input> in .dash-input-container; stretch the
+       wrapper too so the field fills the grid cell like the dropdowns. */
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* Full-width spanning elements: mode radio, run button, status, progress. */
+.optimize-controls .optimize-row--wide,
+.optimize-controls .run-button,
+.optimize-controls .status-text,
+.optimize-controls .optimize-progress {
+    grid-column: 1 / -1;
+}

@@ -23,9 +23,16 @@ dev = [
 opt = [
     "optax>=0.2",
 ]
+gui = [
+    "dash>=2.16",
+    "plotly>=5.20",
+    "diskcache>=5.6",
+    "pandas>=2.0",
+    "multiprocess>=0.70",
+]
 
 [tool.hatch.build.targets.wheel]
-packages = ["multilayer_tmm"]
+packages = ["multilayer_tmm", "app"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
