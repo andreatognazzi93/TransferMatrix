@@ -143,7 +143,7 @@ def _group_table(table_id: str, rows: list[dict], lang: str = "en"):
             },
             ids.LAYER_COL_CSV_NAME: {"options": []},
         },
-        style_table={"overflowX": "auto", "maxWidth": "460px"},
+        style_table={"overflowX": "auto", "maxWidth": "520px"},
         style_cell={
             "textAlign": "center",
             "padding": "1px 4px",
@@ -153,6 +153,15 @@ def _group_table(table_id: str, rows: list[dict], lang: str = "en"):
             "maxWidth": "110px",
             "whiteSpace": "normal",
         },
+        # Widen the "Material type" column so its header/value isn't clipped.
+        style_cell_conditional=[
+            {
+                "if": {"column_id": ids.LAYER_COL_MATERIAL_KIND},
+                "minWidth": "120px",
+                "width": "130px",
+                "maxWidth": "150px",
+            },
+        ],
     )
 
 
@@ -185,24 +194,43 @@ def _grouped_stack_editor(lang: str = "en"):
                 className="opt-group-section",
                 children=[
                     html.H5(labels["opt_input_group"]),
-                    _group_table(ids.OPT_INPUT_GROUP_TABLE, _period_rows(input_layers), lang=lang),
-                    html.Button(
-                        labels["add_layer"],
-                        id=ids.OPT_INPUT_ADD_LAYER_BUTTON,
-                        n_clicks=0,
-                        className="add-layer-button",
-                    ),
                     html.Div(
-                        className="optimize-row",
+                        className="opt-group-row",
                         children=[
-                            html.Label(labels["opt_input_repeat"]),
-                            dcc.Input(
-                                id=ids.OPT_INPUT_REPEAT_INPUT,
-                                type="number",
-                                value=cfg["input_group"]["repeat"],
-                                min=0,
-                                step=1,
-                                debounce=True,
+                            html.Div(
+                                className="opt-group-main",
+                                children=[
+                                    _group_table(
+                                        ids.OPT_INPUT_GROUP_TABLE,
+                                        _period_rows(input_layers),
+                                        lang=lang,
+                                    ),
+                                    html.Button(
+                                        labels["add_layer"],
+                                        id=ids.OPT_INPUT_ADD_LAYER_BUTTON,
+                                        n_clicks=0,
+                                        className="add-layer-button",
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                className="opt-group-side",
+                                children=[
+                                    html.Div(
+                                        className="opt-side-field opt-side-field--narrow",
+                                        children=[
+                                            html.Label(labels["opt_input_repeat"]),
+                                            dcc.Input(
+                                                id=ids.OPT_INPUT_REPEAT_INPUT,
+                                                type="number",
+                                                value=cfg["input_group"]["repeat"],
+                                                min=0,
+                                                step=1,
+                                                debounce=True,
+                                            ),
+                                        ],
+                                    ),
+                                ],
                             ),
                         ],
                     ),
@@ -213,28 +241,47 @@ def _grouped_stack_editor(lang: str = "en"):
                 className="opt-cavity-section",
                 children=[
                     html.H5(labels["opt_cavity"]),
-                    build_material_input(
-                        ids.OPT_CAVITY_MATERIAL_PREFIX, labels["opt_cavity"], lang=lang
-                    ),
                     html.Div(
-                        className="optimize-row",
+                        className="opt-group-row",
                         children=[
-                            html.Label(labels["opt_cavity_thickness"]),
-                            dcc.Input(
-                                id=ids.OPT_CAVITY_THICKNESS_INPUT,
-                                type="number",
-                                value=cfg["cavity"]["thickness_nm"],
-                                step=1,
-                                min=0,
-                                debounce=True,
+                            html.Div(
+                                className="opt-group-main",
+                                children=[
+                                    build_material_input(
+                                        ids.OPT_CAVITY_MATERIAL_PREFIX,
+                                        labels["opt_cavity"],
+                                        lang=lang,
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                className="opt-group-side",
+                                children=[
+                                    html.Div(
+                                        className="opt-side-field",
+                                        children=[
+                                            html.Label(labels["opt_cavity_thickness"]),
+                                            dcc.Input(
+                                                id=ids.OPT_CAVITY_THICKNESS_INPUT,
+                                                type="number",
+                                                value=cfg["cavity"]["thickness_nm"],
+                                                step=1,
+                                                min=0,
+                                                debounce=True,
+                                            ),
+                                        ],
+                                    ),
+                                    dcc.Checklist(
+                                        id=ids.OPT_CAVITY_ENABLED_INPUT,
+                                        options=[
+                                            {"label": labels["opt_cavity_enabled"], "value": "enabled"}
+                                        ],
+                                        value=["enabled"] if cfg["cavity"]["enabled"] else [],
+                                        className="opt-cavity-enabled",
+                                    ),
+                                ],
                             ),
                         ],
-                    ),
-                    dcc.Checklist(
-                        id=ids.OPT_CAVITY_ENABLED_INPUT,
-                        options=[{"label": labels["opt_cavity_enabled"], "value": "enabled"}],
-                        value=["enabled"] if cfg["cavity"]["enabled"] else [],
-                        className="opt-cavity-enabled",
                     ),
                 ],
             ),
@@ -243,33 +290,55 @@ def _grouped_stack_editor(lang: str = "en"):
                 className="opt-group-section",
                 children=[
                     html.H5(labels["opt_output_group"]),
-                    _group_table(
-                        ids.OPT_OUTPUT_GROUP_TABLE, _period_rows(output_layers), lang=lang
-                    ),
-                    html.Button(
-                        labels["add_layer"],
-                        id=ids.OPT_OUTPUT_ADD_LAYER_BUTTON,
-                        n_clicks=0,
-                        className="add-layer-button",
-                    ),
                     html.Div(
-                        className="optimize-row",
+                        className="opt-group-row",
                         children=[
-                            html.Label(labels["opt_output_repeat"]),
-                            dcc.Input(
-                                id=ids.OPT_OUTPUT_REPEAT_INPUT,
-                                type="number",
-                                value=cfg["output_group"]["repeat"],
-                                min=0,
-                                step=1,
-                                debounce=True,
+                            html.Div(
+                                className="opt-group-main",
+                                children=[
+                                    _group_table(
+                                        ids.OPT_OUTPUT_GROUP_TABLE,
+                                        _period_rows(output_layers),
+                                        lang=lang,
+                                    ),
+                                    html.Button(
+                                        labels["add_layer"],
+                                        id=ids.OPT_OUTPUT_ADD_LAYER_BUTTON,
+                                        n_clicks=0,
+                                        className="add-layer-button",
+                                    ),
+                                ],
+                            ),
+                            html.Div(
+                                className="opt-group-side",
+                                children=[
+                                    html.Div(
+                                        className="opt-side-field opt-side-field--narrow",
+                                        children=[
+                                            html.Label(labels["opt_output_repeat"]),
+                                            dcc.Input(
+                                                id=ids.OPT_OUTPUT_REPEAT_INPUT,
+                                                type="number",
+                                                value=cfg["output_group"]["repeat"],
+                                                min=0,
+                                                step=1,
+                                                debounce=True,
+                                            ),
+                                        ],
+                                    ),
+                                ],
                             ),
                         ],
                     ),
                 ],
             ),
-            build_material_input(
-                ids.OPT_SUBSTRATE_MATERIAL_PREFIX, labels["substrate"], lang=lang
+            html.Div(
+                className="opt-substrate-section",
+                children=[
+                    build_material_input(
+                        ids.OPT_SUBSTRATE_MATERIAL_PREFIX, labels["substrate"], lang=lang
+                    ),
+                ],
             ),
             # --- grid / angle / polarization ---
             html.Fieldset(

@@ -1038,7 +1038,10 @@ def sketch_figure(
         annotations=annotations,
         xaxis=dict(
             visible=False,
-            range=[-0.15, 1.45],
+            # Tightened from [-0.15, 1.45]: halve the horizontal empty space on
+            # each side so the slab stack fills more width. Right edge still
+            # clears the ×M period bracket + label (drawn out to ~x=1.1).
+            range=[-0.075, 1.25],
             fixedrange=True,
         ),
         yaxis=dict(

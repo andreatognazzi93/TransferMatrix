@@ -76,7 +76,7 @@ def _layer_table(lang: str = "en"):
             # callback registered in app.main (per-row dropdown of uploaded CSVs).
             ids.LAYER_COL_CSV_NAME: {"options": []},
         },
-        style_table={"overflowX": "auto", "maxWidth": "460px"},
+        style_table={"overflowX": "auto", "maxWidth": "520px"},
         style_cell={
             "textAlign": "center",
             "padding": "1px 4px",
@@ -86,6 +86,15 @@ def _layer_table(lang: str = "en"):
             "maxWidth": "110px",
             "whiteSpace": "normal",
         },
+        # Widen the "Material type" column so its header/value isn't clipped.
+        style_cell_conditional=[
+            {
+                "if": {"column_id": ids.LAYER_COL_MATERIAL_KIND},
+                "minWidth": "120px",
+                "width": "130px",
+                "maxWidth": "150px",
+            },
+        ],
     )
 
 

@@ -272,3 +272,83 @@ body {
 .optimize-controls .optimize-progress {
     grid-column: 1 / -1;
 }
+
+/* ==========================================================================
+   (f) Grouped stack editor — per-period controls sit RIGHT of each table
+   ==========================================================================
+ *
+ * Each mirror/cavity section lays its table (+ "add layer") in a left column
+ * and its repeat / thickness / enabled controls in a narrow right column.
+ */
+
+.opt-group-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    align-items: flex-start;
+}
+
+.opt-group-main {
+    flex: 0 0 auto;
+}
+
+.opt-group-side {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+    /* nudge down so the first field aligns with the table body, not its header */
+    padding-top: 26px;
+}
+
+.opt-group-side .opt-side-field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+}
+
+.opt-group-side .opt-side-field label {
+    white-space: nowrap;
+}
+
+/* Compact, reduced-width side inputs (dcc.Input wraps <input> in a flex
+   .dash-input-container with two stepper buttons — size the wrapper). */
+.opt-group-side .opt-side-field .dash-input-container {
+    width: 130px;
+    box-sizing: border-box;
+}
+
+.opt-group-side .opt-side-field--narrow .dash-input-container {
+    width: 105px;
+}
+
+.opt-group-side .opt-side-field input {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* ==========================================================================
+   (g) Add-layer button + inter-panel spacing (optimize grouped editor)
+   ========================================================================== */
+
+/* Bigger "Add layer" button (both the simulate layer table and the mirrors). */
+.add-layer-button {
+    padding: 8px 18px;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 8px;
+}
+
+/* Extra breathing room around the substrate panel and the panels below it. */
+.opt-substrate-section {
+    margin-top: 32px;
+}
+
+.opt-stack-editor .grid-controls {
+    margin-top: 32px;
+}
+
+.opt-variable-section {
+    margin-top: 32px;
+}
