@@ -25,6 +25,18 @@ class SimulationResult:
     polarizations: tuple[str, ...]
 
 
+@dataclass(frozen=True)
+class AngleMapResult:
+    """Angle-resolved optical response for a single polarization."""
+
+    wavelength_nm: jnp.ndarray
+    angle_deg: jnp.ndarray
+    R: jnp.ndarray
+    T: jnp.ndarray
+    A: jnp.ndarray
+    polarization: str
+
+
 def stack_to_arrays(stack: Stack, wavelengths_nm: Any) -> tuple[jnp.ndarray, jnp.ndarray]:
     """Evaluate a user-friendly ``Stack`` into JAX arrays.
 
@@ -136,6 +148,95 @@ def simulate_spectrum_arrays(
         t=t,
         polarizations=polarizations,
     )
+
+
+def simulate_angle_map_arrays(
+    n_by_wavelength: Any,
+    thicknesses_nm: Any,
+    wavelengths_nm: Any,
+    angles_rad: Any,
+    polarization: str = "s",
+) -> AngleMapResult:
+    """Functional JAX-compatible angle-sweep simulation interface."""
+
+    wavelengths = _as_1d_wavelengths(wavelengths_nm)
+    n_array = jnp.asarray(n_by_wavelength)
+    thicknesses = jnp.asarray(thicknesses_nm, dtype=wavelengths.dtype)
+
+    expected_media = thicknesses.shape[0] + 2
+    if n_array.ndim != 2:
+        raise ValueError("n_by_wavelength must be a two-dimensional array.")
+    if n_array.shape[0] != wavelengths.shape[0]:
+        raise ValueError(
+            "n_by_wavelength first dimension must match wavelengths_nm length."
+        )
+    if n_array.shape[1] != expected_media:
+        raise ValueError(
+            "n_by_wavelength second dimension must equal len(thicknesses_nm) + 2."
+        )
+
+    angles = jnp.asarray(angles_rad, dtype=wavelengths.dtype)
+    if angles.ndim != 1:
+        raise ValueError("angles_rad must be a one-dimensional array.")
+
+    polarizations = _normalize_polarization(polarization)
+    if polarizations == ("s", "p"):
+        raise ValueError('angle map requires a single polarization ("s" or "p").')
+
+    R, T, A, _, _ = _simulate_angle_map_one_polarization(
+        n_by_wavelength=n_array,
+        thicknesses_nm=thicknesses,
+        wavelengths_nm=wavelengths,
+        angles_rad=angles,
+        polarization=polarizations[0],
+    )
+    return AngleMapResult(
+        wavelength_nm=wavelengths,
+        angle_deg=jnp.rad2deg(angles),
+        R=R,
+        T=T,
+        A=A,
+        polarization=polarizations[0],
+    )
+
+
+def simulate_angle_map(
+    stack: Stack,
+    wavelengths_nm: Any,
+    angles_deg: Any,
+    polarization: str = "s",
+) -> AngleMapResult:
+    """Simulate angle-resolved ``R``, ``T``, and ``A`` for one polarization."""
+
+    wavelengths = _as_1d_wavelengths(wavelengths_nm)
+    n_by_wavelength, thicknesses_nm = stack_to_arrays(stack, wavelengths)
+    angles_rad = jnp.deg2rad(jnp.asarray(angles_deg, dtype=wavelengths.dtype))
+    return simulate_angle_map_arrays(
+        n_by_wavelength=n_by_wavelength,
+        thicknesses_nm=thicknesses_nm,
+        wavelengths_nm=wavelengths,
+        angles_rad=angles_rad,
+        polarization=polarization,
+    )
+
+
+@partial(jax.jit, static_argnames=("polarization",))
+def _simulate_angle_map_one_polarization(
+    n_by_wavelength,
+    thicknesses_nm,
+    wavelengths_nm,
+    angles_rad,
+    polarization,
+):
+    return jax.vmap(
+        lambda angle_rad: _simulate_one_polarization(
+            n_by_wavelength=n_by_wavelength,
+            thicknesses_nm=thicknesses_nm,
+            wavelengths_nm=wavelengths_nm,
+            angle_rad=angle_rad,
+            polarization=polarization,
+        )
+    )(angles_rad)
 
 
 @partial(jax.jit, static_argnames=("polarization",))

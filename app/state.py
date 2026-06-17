@@ -27,6 +27,7 @@ from typing import Callable
 import numpy as np
 
 from multilayer_tmm import (
+    AngleMapResult,
     Layer,
     Material,
     OptimizationResult,
@@ -39,6 +40,7 @@ from multilayer_tmm import (
     optimize_resonance_target,  # noqa: F401  (public API; retained for callers)
     optimize_thicknesses,
     resonance_target_loss,
+    simulate_angle_map,
     simulate_spectrum,
     stack_thicknesses,
     stack_with_thicknesses,
@@ -61,7 +63,9 @@ __all__ = [
     "grid_from_config",
     "validate_config",
     "run_simulation",
+    "run_angle_map",
     "result_to_dict",
+    "angle_map_to_dict",
     "analyze_result",
     "make_thickness_objective",
     "expand_optimization_config",
@@ -135,6 +139,21 @@ _ERRORS: dict[str, dict[str, str]] = {
         ),
         "err_optimize_needs_single_pol": (
             "Optimization requires a single polarization "
+            "(select 's' or 'p', not 'both')."
+        ),
+        # ---- angle-sweep map (ANGLE_MAP_CONTRACT §7) ----
+        "err_sweep_missing": "Angle-sweep parameters missing.",
+        "err_sweep_params_invalid": "Invalid angle-sweep parameters.",
+        "err_sweep_range_invalid": (
+            "Angle range must satisfy 0 <= start < stop <= 90 degrees."
+        ),
+        "err_sweep_step_invalid": "Angle step must be greater than zero.",
+        "err_sweep_too_many": (
+            "Too many angles ({num}); reduce the range or increase the step "
+            "(max 361)."
+        ),
+        "err_angle_map_needs_single_pol": (
+            "Angle maps require a single polarization "
             "(select 's' or 'p', not 'both')."
         ),
         # ---- grouped/cavity expansion ----
@@ -236,6 +255,21 @@ _ERRORS: dict[str, dict[str, str]] = {
         ),
         "err_optimize_needs_single_pol": (
             "L'ottimizzazione richiede una singola polarizzazione "
+            "(selezionare 's' o 'p', non 'both')."
+        ),
+        # ---- angle-sweep map (ANGLE_MAP_CONTRACT §7) ----
+        "err_sweep_missing": "Parametri della scansione angolare mancanti.",
+        "err_sweep_params_invalid": "Parametri della scansione angolare non validi.",
+        "err_sweep_range_invalid": (
+            "L'intervallo angolare deve soddisfare 0 <= iniziale < finale <= 90 gradi."
+        ),
+        "err_sweep_step_invalid": "Il passo angolare deve essere maggiore di zero.",
+        "err_sweep_too_many": (
+            "Troppi angoli ({num}); riduci l'intervallo o aumenta il passo "
+            "(max 361)."
+        ),
+        "err_angle_map_needs_single_pol": (
+            "Le mappe angolari richiedono una singola polarizzazione "
             "(selezionare 's' o 'p', non 'both')."
         ),
         # ---- grouped/cavity expansion ----
@@ -606,6 +640,38 @@ def validate_config(config: dict, lang: str = DEFAULT_LANG) -> list[str]:
     if pol not in ("s", "p", "both"):
         errors.append(_e("err_polarization_invalid", lang, pol=pol))
 
+    # Angle-sweep block (ANGLE_MAP_CONTRACT §7) — only for angle_map mode.
+    if config.get("sim_mode") == "angle_map":
+        sweep = config.get("angle_sweep")
+        if not isinstance(sweep, dict):
+            errors.append(_e("err_sweep_missing", lang))
+        else:
+            try:
+                start = float(sweep["start_deg"])
+                stop = float(sweep["stop_deg"])
+                step = float(sweep["step_deg"])
+            except (TypeError, ValueError, KeyError):
+                errors.append(_e("err_sweep_params_invalid", lang))
+            else:
+                range_ok = 0 <= start < stop <= 90
+                if not range_ok:
+                    errors.append(_e("err_sweep_range_invalid", lang))
+                step_ok = step > 0
+                if not step_ok:
+                    errors.append(_e("err_sweep_step_invalid", lang))
+                # num_angles cap — same inclusive formula as run_angle_map
+                # (§5.2). Only meaningful once range & step are valid (a
+                # non-positive step would make the count nonsensical).
+                if range_ok and step_ok:
+                    num_angles = int(np.floor((stop - start) / step + 1e-9)) + 1
+                    if num_angles > 361:
+                        errors.append(
+                            _e("err_sweep_too_many", lang, num=num_angles)
+                        )
+        # Belt-and-suspenders: reject "both" for an angle map.
+        if pol == "both":
+            errors.append(_e("err_angle_map_needs_single_pol", lang))
+
     return errors
 
 
@@ -628,9 +694,14 @@ def result_to_dict(result: SimulationResult) -> dict:
     ``r`` and ``t`` (complex amplitudes) are intentionally omitted — they are
     not plotted. For ``polarization="both"`` the R/T/A arrays keep their leading
     axis of size 2 in ``(s, p)`` order, so each becomes a list of two lists.
+
+    A ``mode: "single"`` discriminator is injected (ANGLE_MAP_CONTRACT §2.1) so
+    downstream readers can branch unambiguously; a missing ``mode`` is treated
+    as ``"single"`` for backward compatibility.
     """
 
     return {
+        "mode": "single",
         "wavelength_nm": _to_list(result.wavelength_nm),
         "R": _to_list(result.R),
         "T": _to_list(result.T),
@@ -639,13 +710,54 @@ def result_to_dict(result: SimulationResult) -> dict:
     }
 
 
+def angle_map_to_dict(result: AngleMapResult) -> dict:
+    """Serialize an :class:`AngleMapResult` to a JSON-safe dict.
+
+    Schema (ANGLE_MAP_CONTRACT §2.2)::
+
+        {
+          "mode": "angle_map",
+          "wavelength_nm": [...],          # x axis, length num_wavelengths
+          "angle_deg": [...],              # y axis, length num_angles
+          "R": [[...], ...],               # (num_angles, num_wavelengths)
+          "T": [[...], ...],
+          "A": [[...], ...],
+          "polarization": "s" | "p",       # single string (NOT the list key)
+        }
+
+    The 2-D channel arrays keep the ``AngleMapResult`` orientation (angle is
+    axis 0 / rows / y). ``_to_list`` produces JSON-safe nested float lists and
+    casts complex -> real defensively. ``r``/``t`` are not present on the
+    result and are not serialized.
+    """
+
+    return {
+        "mode": "angle_map",
+        "wavelength_nm": _to_list(result.wavelength_nm),
+        "angle_deg": _to_list(result.angle_deg),
+        "R": _to_list(result.R),
+        "T": _to_list(result.T),
+        "A": _to_list(result.A),
+        "polarization": str(result.polarization),
+    }
+
+
 def run_simulation(config: dict, lang: str = DEFAULT_LANG) -> dict:
-    """Build stack + grid from ``config``, run ``simulate_spectrum``, serialize.
+    """Build stack + grid from ``config``, simulate, serialize.
+
+    Branches on ``config.get("sim_mode", "single")`` (ANGLE_MAP_CONTRACT §5.2):
+
+    - ``"single"``: existing path -> ``simulate_spectrum`` -> §2.1 dict with
+      ``mode: "single"`` injected.
+    - ``"angle_map"``: delegate to :func:`run_angle_map` -> §2.2 dict.
 
     Raises ``ValueError`` (joined localized messages) if ``validate_config``
     reports problems, so callbacks can surface a single clear error string.
     Default English.
     """
+
+    if config.get("sim_mode", "single") == "angle_map":
+        return run_angle_map(config, lang=lang)
 
     errors = validate_config(config, lang=lang)
     if errors:
@@ -660,6 +772,50 @@ def run_simulation(config: dict, lang: str = DEFAULT_LANG) -> dict:
         polarization=config.get("polarization", "s"),
     )
     return result_to_dict(result)
+
+
+def run_angle_map(config: dict, lang: str = DEFAULT_LANG) -> dict:
+    """Run an angle-sweep map from a §2.2 stack-config dict (sim_mode=angle_map).
+
+    Validates (including the §7 sweep rules), builds the stack + wavelength grid
+    as in single mode, constructs the degree-angle vector from
+    ``config["angle_sweep"]`` (inclusive of ``stop`` within tolerance — the SAME
+    ``num_angles`` formula validation uses, so a config that validates always
+    builds), calls ``simulate_angle_map`` for the SINGLE polarization, and
+    serializes via :func:`angle_map_to_dict`.
+
+    Raises ``ValueError`` (joined localized messages) on validation problems.
+    Public (in ``__all__``) so it can be exercised directly. Default English.
+    """
+
+    errors = validate_config(config, lang=lang)
+    if errors:
+        raise ValueError(" ".join(errors))
+
+    stack = stack_from_config(config, lang=lang)
+    wavelengths = grid_from_config(config)
+
+    sweep = config["angle_sweep"]
+    start, stop, step = (
+        float(sweep["start_deg"]),
+        float(sweep["stop_deg"]),
+        float(sweep["step_deg"]),
+    )
+    num_angles = int(np.floor((stop - start) / step + 1e-9)) + 1
+    angles_deg = start + np.arange(num_angles) * step
+
+    result = simulate_angle_map(
+        stack,
+        wavelengths_nm=wavelengths,
+        angles_deg=angles_deg,
+        polarization=config.get("polarization", "s"),
+    )
+    result_dict = angle_map_to_dict(result)
+    # Use the exact float64 requested degrees for the axis, not the float32
+    # round-trip from the JAX kernel (keeps y-axis ticks/hover clean, e.g. 30.0
+    # not 30.000002). Lengths match by construction.
+    result_dict["angle_deg"] = [float(a) for a in angles_deg]
+    return result_dict
 
 
 # ===========================================================================

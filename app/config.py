@@ -27,6 +27,9 @@ FEATURE_VALUES = ("peak", "dip")
 SPECTRUM_VALUES = ("R", "T", "A")
 MATERIAL_KIND_VALUES = ("constant", "csv")
 OPTIMIZE_MODE_VALUES = ("resonance", "mean_r")
+#: Simulation-mode toggle values (ANGLE_MAP_CONTRACT §3.2). The toggle option
+#: labels reuse the "sim_mode_" prefix via options_for().
+SIM_MODE_VALUES = ("single", "angle_map")
 
 # Legacy (value, label) option tuples — RETAINED for callers that still iterate
 # (value, text). Labels are in Italian here; use options_for() for i18n.
@@ -60,6 +63,16 @@ DEFAULT_GRID = {"start_nm": 400.0, "stop_nm": 800.0, "num": 401}
 DEFAULT_ANGLE_DEG = 0.0
 DEFAULT_POLARIZATION = "s"
 
+# Angle-sweep map defaults (ANGLE_MAP_CONTRACT §3.1). With these defaults
+# num_angles == 81 (inclusive count formula, see ANGLE_MAP_CONTRACT §7/§5.2).
+DEFAULT_ANGLE_SWEEP = {"start_deg": 0.0, "stop_deg": 80.0, "step_deg": 1.0}
+
+
+def default_angle_sweep() -> dict:
+    """Return a fresh, valid angle-sweep dict (degrees)."""
+
+    return dict(DEFAULT_ANGLE_SWEEP)
+
 DEFAULT_INCIDENT_MATERIAL = {"kind": "constant", "n": 1.0, "k": 0.0, "name": "Aria"}
 DEFAULT_SUBSTRATE_MATERIAL = {"kind": "constant", "n": 1.46, "k": 0.0, "name": "SiO2"}
 DEFAULT_LAYER_MATERIAL = {"kind": "constant", "n": 2.0, "k": 0.0, "name": "Strato"}
@@ -78,6 +91,10 @@ def default_stack_config() -> dict:
         "grid": dict(DEFAULT_GRID),
         "angle_deg": DEFAULT_ANGLE_DEG,
         "polarization": DEFAULT_POLARIZATION,
+        # Angle-sweep map (ANGLE_MAP_CONTRACT §3.1): mode discriminator +
+        # default sweep. "single" preserves the existing single-angle behavior.
+        "sim_mode": "single",
+        "angle_sweep": dict(DEFAULT_ANGLE_SWEEP),
     }
 
 
@@ -240,6 +257,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "simulate_status_running": "Simulation running...",
         "simulate_status_done": "Simulation complete.",
 
+        # ---- angle-sweep map mode (ANGLE_MAP_CONTRACT §3.2) ----
+        "sim_mode_label": "Simulation mode",
+        "sim_mode_single": "Single angle",
+        "sim_mode_angle_map": "Angle sweep (map)",
+        "angle_sweep_section": "Angle sweep",
+        "angle_start": "Start angle (deg)",
+        "angle_stop": "Stop angle (deg)",
+        "angle_step": "Step (deg)",
+        "angle_map_pol_hint": "Angle maps use a single polarization (s or p).",
+
         # ---- optimize panel (chrome) ----
         "optimize_mode": "Mode",
         "optimize_target_wavelength": "Target wavelength (nm)",
@@ -294,6 +321,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "res_table_metric": "Metric",
         "res_table_value": "Value",
         "res_table_warning": "Warning",
+        # angle-sweep map: resonance readout has no single value (§8.3)
+        "res_na_angle_map": "N/A for angle map",
 
         # ---- tooltips (tip_*) — optimization controls only (§12.2) ----
         "tip_mode": (
@@ -405,6 +434,16 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "simulate_status_running": "Simulazione in corso...",
         "simulate_status_done": "Simulazione completata.",
 
+        # ---- angle-sweep map mode (ANGLE_MAP_CONTRACT §3.2) ----
+        "sim_mode_label": "Modalità di simulazione",
+        "sim_mode_single": "Angolo singolo",
+        "sim_mode_angle_map": "Scansione angolare (mappa)",
+        "angle_sweep_section": "Scansione angolare",
+        "angle_start": "Angolo iniziale (gradi)",
+        "angle_stop": "Angolo finale (gradi)",
+        "angle_step": "Passo (gradi)",
+        "angle_map_pol_hint": "Le mappe angolari usano una singola polarizzazione (s o p).",
+
         # ---- optimize panel (chrome) ----
         "optimize_mode": "Modalità",
         "optimize_target_wavelength": "Lambda obiettivo (nm)",
@@ -459,6 +498,8 @@ TRANSLATIONS: dict[str, dict[str, str]] = {
         "res_table_metric": "Grandezza",
         "res_table_value": "Valore",
         "res_table_warning": "Avviso",
+        # angle-sweep map: resonance readout has no single value (§8.3)
+        "res_na_angle_map": "N/D per la mappa angolare",
 
         # ---- tooltips (tip_*) — optimization controls only ----
         "tip_mode": (

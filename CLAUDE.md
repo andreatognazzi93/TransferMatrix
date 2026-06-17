@@ -34,3 +34,4 @@ Data flow, user-facing → kernel:
 - Transmission uses the power-flux correction `T = Re(Y_sub)/Re(Y_inc) * |t|^2`, not just `|t|^2`.
 - Everything is in nanometers. Wavelength arrays must be 1-D.
 
+Not a git repo. `docs/codex-history.md` is a build log, not API docs.

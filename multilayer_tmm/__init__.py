@@ -18,7 +18,10 @@ from multilayer_tmm.resonance import (
     smooth_resonance_metrics,
 )
 from multilayer_tmm.tmm import (
+    AngleMapResult,
     SimulationResult,
+    simulate_angle_map,
+    simulate_angle_map_arrays,
     simulate_spectrum,
     simulate_spectrum_arrays,
     stack_to_arrays,
@@ -26,6 +29,7 @@ from multilayer_tmm.tmm import (
 from multilayer_tmm.utils import available_devices, print_jax_devices, wavelength_grid
 
 __all__ = [
+    "AngleMapResult",
     "Layer",
     "Material",
     "OptimizationResult",
@@ -44,6 +48,8 @@ __all__ = [
     "print_jax_devices",
     "read_spectrum_csv",
     "resonance_target_loss",
+    "simulate_angle_map",
+    "simulate_angle_map_arrays",
     "simulate_spectrum",
     "simulate_spectrum_arrays",
     "smooth_resonance_metrics",

@@ -45,6 +45,7 @@ from __future__ import annotations
 
 import numpy as np
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 __all__ = [
     "spectrum_figure",
@@ -52,6 +53,7 @@ __all__ = [
     "resonance_overlay_figure",
     "sketch_figure",
     "empty_figure",
+    "angle_map_figure",
 ]
 
 # ---------------------------------------------------------------------------
@@ -91,6 +93,10 @@ _PLOT_TRANSLATIONS: dict[str, dict[str, str]] = {
         # Resonance summary (summary_in_legend=True)
         "lambda_res": "λ_res",
         "q_factor": "Q",
+        # Angle-map figure (§6.2)
+        "angle_axis": "Angle (deg)",
+        "map_colorbar": "Value",
+        "map_hover_angle": "Angle",
     },
     "it": {
         # Spectrum / shared axes
@@ -123,6 +129,10 @@ _PLOT_TRANSLATIONS: dict[str, dict[str, str]] = {
         # Resonance summary (summary_in_legend=True)
         "lambda_res": "λ_ris",
         "q_factor": "Q",
+        # Angle-map figure (§6.2)
+        "angle_axis": "Angolo (gradi)",
+        "map_colorbar": "Valore",
+        "map_hover_angle": "Angolo",
     },
 }
 
@@ -1060,6 +1070,111 @@ def sketch_figure(
             xanchor="left",
         ),
         margin=dict(l=80, r=40, t=50 if (title or True) else 20, b=20),
+    )
+    return fig
+
+
+def angle_map_figure(
+    result_dict: dict,
+    channels: tuple[str, ...] = ("R", "T", "A"),
+    title: str | None = None,
+    lang: str = "en",
+) -> go.Figure:
+    """Stacked heatmap subplots for an angle-sweep simulation result (§2.2 schema).
+
+    Produces one :class:`plotly.graph_objects.Heatmap` per selected channel that
+    is present in *result_dict*, ordered as in *channels*.  Wavelength is the
+    x-axis; angle is the y-axis; R/T/A value is the color (Viridis, fixed
+    ``zmin=0``, ``zmax=1``).
+
+    Parameters
+    ----------
+    result_dict:
+        JSON-safe angle-map dict from ``state.angle_map_to_dict``.  Required
+        keys: ``"wavelength_nm"`` (length *num_wavelengths*), ``"angle_deg"``
+        (length *num_angles*), and the selected channel keys (``"R"``, ``"T"``,
+        ``"A"``) each as a 2-D nested list of shape ``(num_angles,
+        num_wavelengths)``.
+    channels:
+        Which of ``("R", "T", "A")`` to include.  Channels absent from
+        *result_dict* are silently skipped, mirroring :func:`spectrum_figure`.
+    title:
+        Optional overall figure title; ``None`` omits the title bar.
+    lang:
+        Display language — ``"en"`` (default) or ``"it"``.
+    """
+    L = _plot_labels(lang)
+
+    # Ordered list of channels that are actually present in result_dict.
+    selected = [ch for ch in channels if ch in result_dict]
+    if not selected:
+        return empty_figure("")
+
+    n_rows = len(selected)
+
+    # Channel display names used as subplot titles.
+    _ch_key = {"R": "ch_R", "T": "ch_T", "A": "ch_A"}
+    subplot_titles = [L.get(_ch_key.get(ch, ""), ch) for ch in selected]
+
+    fig = make_subplots(
+        rows=n_rows,
+        cols=1,
+        shared_xaxes=True,
+        subplot_titles=subplot_titles,
+        vertical_spacing=0.12 / max(n_rows, 1),
+    )
+
+    wavelength_nm = list(result_dict["wavelength_nm"])
+    angle_deg = list(result_dict["angle_deg"])
+
+    hover_tmpl = (
+        f"{L['x_axis']}: %{{x:.3f}}<br>"
+        f"{L['map_hover_angle']}: %{{y:.3f}}<br>"
+        f"{L['map_colorbar']}: %{{z:.4f}}<extra></extra>"
+    )
+
+    for row_idx, channel in enumerate(selected, start=1):
+        ch_label = L.get(_ch_key.get(channel, ""), channel)
+
+        # Position the colorbar vertically so it aligns with its subplot row.
+        # Plotly's subplot y-domain for row i (1-indexed, top-to-bottom) is
+        # approximately [(n_rows - i) / n_rows, (n_rows - i + 1) / n_rows].
+        cb_y = 1.0 - (row_idx - 0.5) / n_rows
+        cb_len = 0.9 / n_rows
+
+        fig.add_trace(
+            go.Heatmap(
+                z=result_dict[channel],
+                x=wavelength_nm,
+                y=angle_deg,
+                colorscale="Viridis",
+                zmin=0,
+                zmax=1,
+                zauto=False,
+                hovertemplate=hover_tmpl,
+                colorbar=dict(
+                    title=ch_label,
+                    len=cb_len,
+                    y=cb_y,
+                    yanchor="middle",
+                    thickness=14,
+                ),
+                showscale=True,
+            ),
+            row=row_idx,
+            col=1,
+        )
+
+        # y-axis title on every subplot row.
+        fig.update_yaxes(title_text=L["angle_axis"], row=row_idx, col=1)
+
+    # x-axis title only on the bottom subplot (shared x).
+    fig.update_xaxes(title_text=L["x_axis"], row=n_rows, col=1)
+
+    fig.update_layout(
+        title=title,
+        template="plotly_white",
+        margin=dict(l=60, r=80, t=60 if title else 40, b=50),
     )
     return fig
 

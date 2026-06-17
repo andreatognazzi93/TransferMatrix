@@ -329,6 +329,63 @@ body {
 }
 
 /* ==========================================================================
+   (h) Angle-sweep mode toggle + sweep-inputs container (ANGLE_MAP_CONTRACT)
+   ==========================================================================
+ *
+ * .simulate-mode-radio — inline radio items for "single" | "angle_map".
+ * .angle-sweep-container — fieldset-like wrapper: legend + three compact
+ *   numeric inputs in a flex row + a small hint paragraph.
+ * .angle-sweep-row — three .field-cell inputs laid out horizontally,
+ *   matching the .grid-row / .material-input compact pattern (§d above).
+ * .angle-sweep-hint — muted small text below the three inputs.
+ */
+
+.simulate-mode-radio {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px 0;
+    margin-bottom: 10px;
+}
+
+.simulate-mode-radio label {
+    /* Inherits color:#111 from .app-root label; no override needed. */
+    font-size: 0.95rem;
+}
+
+.angle-sweep-container {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border: 1px solid #d0d4da;
+    border-radius: 4px;
+    max-width: 540px;
+}
+
+.angle-sweep-container > legend {
+    font-weight: 600;
+    color: #111111;
+    padding: 0 4px;
+    font-size: 0.95rem;
+}
+
+/* Three compact angle inputs in a flex row — reuses .field-cell (160 px wide)
+   defined in section (d) above. Gap matches .grid-row. */
+.angle-sweep-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 14px;
+    align-items: flex-end;
+    margin-top: 6px;
+}
+
+.angle-sweep-hint {
+    margin: 6px 0 0;
+    font-size: 0.82rem;
+    color: #555555;
+    line-height: 1.3;
+}
+
+/* ==========================================================================
    (g) Add-layer button + inter-panel spacing (optimize grouped editor)
    ========================================================================== */
 

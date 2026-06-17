@@ -88,6 +88,18 @@ SIMULATE_GRAPH = "simulate_graph"
 #: mini-sketch of the flat stack (§10), updated from STACK_CONFIG_STORE.
 SIMULATE_SKETCH_GRAPH = "simulate_sketch_graph"
 
+# --- Angle-sweep map mode toggle + inputs (ANGLE_MAP_CONTRACT §4) -----------
+#: dcc.RadioItems: "single" | "angle_map" (config.SIM_MODE_VALUES).
+SIMULATE_MODE_INPUT = "simulate_mode_input"
+SIMULATE_ANGLE_START_INPUT = "simulate_angle_start_input"
+SIMULATE_ANGLE_STOP_INPUT = "simulate_angle_stop_input"
+SIMULATE_ANGLE_STEP_INPUT = "simulate_angle_step_input"
+#: container wrapping the single-angle ANGLE_INPUT + POLARIZATION "both" option.
+SIMULATE_SINGLE_ANGLE_CONTAINER = "simulate_single_angle_container"
+#: container wrapping the three angle-sweep inputs (start/stop/step). Shown only
+#: in angle_map mode; toggled via style.display by a show/hide callback.
+SIMULATE_ANGLE_SWEEP_CONTAINER = "simulate_angle_sweep_container"
+
 # ---------------------------------------------------------------------------
 # Optimize panel (workflow 2)
 # ---------------------------------------------------------------------------
